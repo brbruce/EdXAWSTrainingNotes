@@ -2,7 +2,7 @@
 
 https://courses.edx.org/courses/course-v1:AWS+OTP-AWSD1+1T2018/course/
 
-# Week 1
+# Week 1 - 6/28-7/1/2018
 
 AWS Account: bbawsjunk1  
 EC2 Dashboard  
@@ -121,7 +121,7 @@ This is a service that intercepts calls to 169.254.169.254 from your EC2 instanc
 https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html
 
 -------------------------------
-# Week 2
+# Week 2 - 7/1-
 
 ### AWS APIs
 
