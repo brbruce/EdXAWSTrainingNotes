@@ -250,17 +250,43 @@ S3 page.  Create new bucket.
 
 Follow instructions to download zip file, unzip, install requirements.
 
-Set up run configuration with ENV vars.
+Set up run configuration with ENV vars PHOTOS_BUCKET and FLASK_SECRET.
 
 Edit security group for Cloud9 EC2 instance, inbound rule, add rule, custom tcp port 5000 from source 0.0.0.0/0.
 
-Share cloud9 env.  Opens dialog window with IP address.  Copy the IP address:  52.43.66.212
+In Cloud9 IDE, click Share just to check the public IP address. Opens dialog window with IP address.  Copy the IP address:  54.214.132.138
 
-Go to URL http://52.43.66.212:5000
+Go to URL http://54.214.132.138:5000
 
-Modified code to sort images by LastModified (See application_sorted_by_lastModified.py)
+Modified code to sort images by LastModified (See application_sorted_by_lastModified.py)  - Created sort method, and called sorted function while looping over photo content.
+
+    def getLastModified(content):
+        return content["LastModified"]
+    
+    ...
+    photos = [s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': config.PHOTOS_BUCKET, 'Key': content['Key']}
+            # Modified to sort by LastModified
+            #) for content in response['Contents']]
+            ) for content in sorted(response['Contents'], key=getLastModified)]
 
 https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Client.list_objects
+
+## Exercise 6 - Amazon Rekognition
+
+Same as exercise 5.  Calls Rekognition service with uploaded picture to return labels.
+
+Modified to also print confidence number:
+
+    rek = boto3.client('rekognition')
+    response = rek.detect_labels(
+    ...
+    print("+++++ Response: ")
+    pprint.pprint(response)
+    # Modified to include confidence number
+    #all_labels = [label['Name'] for label in response['Labels']]
+    all_labels = [(label['Name']+" ("+str(label['Confidence'])+")") for label in response['Labels']]
 
 
 
