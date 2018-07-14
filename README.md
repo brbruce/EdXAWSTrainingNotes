@@ -459,7 +459,83 @@ From: https://help.github.com/articles/adding-an-existing-project-to-github-usin
     # Pushes the changes in your local repository up to the remote repository you specified as the origin
     git push -u origin master (paste username and password)
 
+## Availablilty
 
+Types of failures: Hardware, Planned (maintenance, upgrades), Unplanned downtime (bugs, human error, external issues like network, weather)
+
+Failover a server to a different one
+
+Or, loadbalance between two servers realtime
+
+* S3 service - Replicated automatically.
+
+* RDS - Automatic nightly backups.  Can also run multi-AZ or multi AWS Regions.
+
+__Elastic Load Balancer__ (Application load balancer) - Fully managed service.
+
+Configuration:  
+* VPC  
+* Security Groups  
+* Ports to listen on  
+* AZs to route to  
+* EC2 servers to route to
+* Healthchecks - Only send traffic to health servers  
+* DNS - Using Amazon Route 53 DNS service
+
+Clients must use DNS name, not IP.
+
+Go to EC2 Console and select Options to configure an LB.
+
+LB types:
+* Application LB (* Choose this one)  
+* TCP LB  
+* Classic LB  
+
+## Exersize 8
+
+1. Start existing RDS Instance - __edx-photos-db__  
+2. Create new security group in VPC __edx-build-aws-vpc__  
+* Security Groups Name: __web-server-sg__  (sg-044225f0a11a1a7a9)  
+* Go to EC2 console page, select Security Groups left nav menu.
+
+3. Modify RDS security group to allow web server connection.  
+* Select security group __rds-launch-wizard (sg-0965722cdbe774e58)__  
+* Add inbound rule and select source = the new security group: __sg-044225f0a11a1a7a9 web-server-sg__  
+
+4. Create new S3 bucket for deployment artifacts (?) - S3 console, Create new bucket: __ex8bucketbrbruce__  
+
+5. Update app.ini file in rds exercise:  
+* DATABASE_HOST=edx-photos-db.ccd69a3vcffc.us-west-2.rds.amazonaws.com  
+* DATABASE_USER=web_user  
+* DATABASE_PASSWORD=1W4&IK%oDoKQpKGQ   
+* DATABASE_DB_NAME=Photos  
+* FLASK_SECRET=asdfwe2342s  
+* PHOTOS_BUCKET=bbruceedxbucket  
+6. Update userdata.txt with new bucket name.
+7. Zip up deploy and flaskApp dirs.  Need this to deplot to 2 new EC2 instances.
+8. Copy zip to new S3 bucket:
+    aws s3 cp ~/deploy-app.zip s3://ex8bucketbrbruce/
+
+9. IAM Console - Roles - create role - type = EC2  
+10. Use case = EC2 - Allows EC2 instances to call AWS services on your behalf.
+11. Add 2 policies.  
+* Search for "s3" and select AmazonS3FullAccess  
+* Search for "Rekognition" and select AmazonRekognitionReadOnlyAccess.  
+12. New role name = __ec2-webserver-role__
+
+Trusted entities: AWS service: ec2.amazonaws.com  
+Policies:  
+[AWS Managed Policy] AmazonS3FullAccess  
+[AWS Managed Policy] AmazonRekognitionReadOnlyAccess   
+
+13. Provision Amazon EC2 instances and deploy the application via user data (in userdata.txt).  Create new EC2 instance just like before.
+* Amazon Linux AMI  
+* t2.micro  
+* network=edx-build-aws-vpc, subnet=edx-subnet-public-a, IAM Role=ec2-webserver-role  
+* Advanced Details: (Copy and paste contents of userdata.txt as Text)  
+* Add Tag: Name=WebServer1  
+* Configure security group - Select an existing security group option: web-server-sg  
+* Launch
 
 
 
