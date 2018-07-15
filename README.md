@@ -459,6 +459,15 @@ From: https://help.github.com/articles/adding-an-existing-project-to-github-usin
     # Pushes the changes in your local repository up to the remote repository you specified as the origin
     git push -u origin master (paste username and password)
 
+To add and commit changes from Cloud9:
+
+    cd ~/repository
+    git status
+    git add .
+    git status
+    git commit -m "some message"
+    git push -u origin master (paste username and password)
+
 ## Availablilty
 
 Types of failures: Hardware, Planned (maintenance, upgrades), Unplanned downtime (bugs, human error, external issues like network, weather)
@@ -507,12 +516,12 @@ LB types:
 5. Update app.ini file in rds exercise:  
 * DATABASE_HOST=edx-photos-db.ccd69a3vcffc.us-west-2.rds.amazonaws.com  
 * DATABASE_USER=web_user  
-* DATABASE_PASSWORD=1W4&IK%oDoKQpKGQ   
+* DATABASE_PASSWORD=1W4&IK%oDoKQpKGQ   <-- Changed to ShowMeTheMoney
 * DATABASE_DB_NAME=Photos  
 * FLASK_SECRET=asdfwe2342s  
 * PHOTOS_BUCKET=bbruceedxbucket  
 6. Update userdata.txt with new bucket name.
-7. Zip up deploy and flaskApp dirs.  Need this to deplot to 2 new EC2 instances.
+7. Zip up deploy and flaskApp dirs.  Need this to deploy to 2 new EC2 instances.
 8. Copy zip to new S3 bucket:
     aws s3 cp ~/deploy-app.zip s3://ex8bucketbrbruce/
 
@@ -535,7 +544,344 @@ Policies:
 * Advanced Details: (Copy and paste contents of userdata.txt as Text)  
 * Add Tag: Name=WebServer1  
 * Configure security group - Select an existing security group option: web-server-sg  
-* Launch
+* Launch - Choose existing key pair: AWS_E3_KeyPair2
 
+IPv4 Public IP for WebServer1 = 34.221.235.118
+
+14. Provision second Amazon EC2 instances and deploy the application via user data (in userdata.txt).  Create new EC2 instance just like above.  Only differences:
+* subnet=edx-subnet-public-b  
+* Add Tag: Name=WebServer2  
+
+IPv4 Public IP for WebServer2 = 34.219.254.8
+
+15. Test webservers by entering IP address in browser.  
+
+NOTE: Got error 500 on both.  
+ 
+### Debugging steps:
+1. EC2 instance Actions > Instance Settings > Get System Log  
+* Looks OK.  Last line is SSH login prompt.  
+2. SSH to each webserver instance and check local logs.  Make sure to use ec2-user@<34.221.235.118> and use the latest keys AWS_E3_KeyPair2.ppk  
+
+Check log:
+
+    cat /var/log/cloud-init-output.log
+
+Looks OK.
+
+    sudo cat /var/log/uwsgi.log
+    
+    [2018-07-14 06:03:33,131] ERROR in app: Exception on / [GET]
+    Traceback (most recent call last):
+        ...
+        File "./database.py", line 17, in list_photos
+        conn = get_database_connection()
+        ...
+        File "/usr/local/lib64/python3.6/site-packages/mysql/connector/connection.py", line 210, in _auth_switch_request
+        raise errors.get_exception(packet)
+        mysql.connector.errors.ProgrammingError: 1045 (28000): Access denied for user 'web_user'@'10.1.2.8' (using password: YES)
+
+Password problem or network problem?
+
+Tested by installing mysql client on the webserver instance, and connecting.  Worked OK.
+
+    sudo yum install mysql
+
+    mysql -h edx-photos-db.ccd69a3vcffc.us-west-2.rds.amazonaws.com -u web_user -p
+
+OK.  So connectivity and password are not the issue.
+
+On each instance, added password debugging in database.py get_database_connection():     
+
+    print("********Password: "+config.DATABASE_PASSWORD)
+ 
+Restart the uwsgi process (as root):
+
+    sudo restart uwsgi
+
+Now reload the webserver page, and check the uwsgi logs:
+
+    sudo cat /var/log/uwsgi.log
+    ...
+    ********Password: 1W4&IK/photos/Deploy/app.iniDoKQpKGQ
+
+The password is actually "1W4&IK%oDoKQpKGQ" but contains "&o" which seems to be getting expanded to "/photos/Deploy/app.ini".
+
+Try adding a "\" to escape it, and restart uwsgi.  No good:
+
+    ********Password: 1W4&IK\/photos/Deploy/app.iniDoKQpKGQ
+
+Need to change the password on the RDS server.
+
+RDS Console > Instance > Actions > Modify > change Master password
+
+New RDS password: "ShowMeTheMoney"
+
+Wait till RDS server updated master password.  
+
+Wait, need to update the password for web_user.  Connect to mysql using master user (with new password)
+
+    mysql -h edx-photos-db.ccd69a3vcffc.us-west-2.rds.amazonaws.com -u master -p
+    SET PASSWORD FOR 'web_user' = PASSWORD('ShowMeTheMoney');
+    Query OK, 0 rows affected (0.00 sec)
+
+Test the new password using mysql with web_user.  OK.
+
+Update the app.ini file with the new password on both servers and restart uwsgi and retest the web pages. OK!!!
+
+(Update the local Cloud9 instance ENV settings as well.)
+
+16. Create and configure the Application Load Balancer.
+
+* EC2 Console - Load Balancing - Load Balancers > Create > Application Load Balancer (HTTP)   
+* Name: __photos-alb__  
+* VPC: edx_build_aws_vpc  
+* Select both Availablity Zones, and select the public subnet for each.  
+* Select existing security group > Unselect Default, select web-server-sg  
+* Configure Routing > New target group > Name = __webserver-target__  
+* Register Targets > Select WebServer1 and WebServer2.  Click Register.
+* Review and create.  Wait till status becomes Active.
+
+Check Target Groups on left side navbar.  In Target tab in subpane, status of each registered target should be Health.
+
+Go to Load Balancers, and select photos-alb and copy DNS name:
+
+DNS Name: __photos-alb-299294069.us-west-2.elb.amazonaws.com__  
+
+Check in browser.  App should appear.
+
+17. Take one web server down and test for the availability of the application
+
+EC2 console > Instances > select WebServer2 > Copy IP address.
+
+SSH to WebServer2 in putty via IP address.  Delete the /photos/ app and restart uwsgi:
+
+    sudo rm -rf /photos/
+    sudo restart uwsgi 
+
+If you connect in browser, you will see an nginx error! page.
+
+Check Target Groups console page.  WebServer2 status should be unhealthy.
+
+Test app in browser using LB DNS name.  Should still work.  OK!!
+
+18. Cleanup
+
+* Terminate both EC2 instances.  
+* Delete the LB  
+* Stop RDB  
+
+19. Update github with latest changes to the Cloud9 app.
+
+
+## Optional Challenge: Create AWS Elastic Beanstalk to deploy the flask app to.
+
+https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create-deploy-python-flask.html
+
+https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/GettingStarted.html
+
+1. Create "application source bundle".  I guess it's the same zip file as in the exercise?  Create new deploy-app.zip with corrected password.  Upload to S3 bucket for deployment.
+
+    rm ~/deploy-app.zip
+    cd ~/environment/exercise-rds
+    zip -r ~/deploy-app.zip Deploy/ FlaskApp/
+    aws s3 cp ~/deploy-app.zip s3://ex8bucketbrbruce/
+
+
+NOTE: I tried to create an Elastic Beanstalk application but got an error that user edXProjectUser3 is not authorized to perform elasticbeanstalk:CreateApplication.
+
+I checked, and the user's policy "edXProjectPolicy" does not have permission.  Logged in as root user, and edited the policy and clicked "Add additional permissions" link at the bottom right of the permissions list, then selected Elastic BeanStalk and added all actions, and all resources (got a warning that it needed some resource.  Gave it all, same as all the other permissions.)  Saved.
+
+Log out, and log back in as edXProjectUser3. Click link to Sign in as different account, then enter anything as the account id or alias.  On the next screen, use lastpass to enter details for edXProjectUser3 (Account id is 570589970431)
+
+NOTE 2: When I tried to start the Elastic Beanstalk instance, I got an error:
+
+Creating Auto Scaling launch configuration failed Reason: API: autoscaling:CreateLaunchConfiguration User: arn:aws:iam::570589970431:user/edXProjectUser3 is not authorized to perform: autoscaling:CreateLaunchConfiguration
+
+I needed to also add "Auto Scale" permission (all action, all resources).
+
+2. Go to EB console, and click the "Create New Application" link in the top right corner. (rest of page is not clickable)  
+* Application Name: __bbruceEB1__  
+* Worked this time. On next page, select Create Environment, choose Web server env.  
+    - Env name: __Bbruceeb1-env__
+    - Platform: Python
+    - Application code: Upload your code.  Select Public S3 URL: 
+        - https://s3-us-west-2.amazonaws.com/ex8bucketbrbruce/deploy-app.zip
+        - NOTE: At first, I tried s3://ex8bucketbrbruce/deploy-app.zip but it would not accept it.  I had to go to the S3 console, and click on the ex8bucketbrbruce link and then the deploy-app.zip link to get the public URL for the file, which is https://...
+
+3. Due to the Auto Scale permission error, the instance was created but not started.  Go back to the EB console, select the instance and environment, and in the Actions menu, select "Rebuild Environment".  That started the instance.  The Health status is OK and green, but in the event log, there is an error:
+
+Your WSGIPath refers to a file that does not exist.
+
+URL: http://bbruceeb1-env.35fny3di4u.us-west-2.elasticbeanstalk.com/
+
+(404 error)
+
+The exercise hint says the application is just the flask app, and not the deploy directory.  Also, it says I need to set up environment variables.
+
+How to SSH to the instance?
+
+EC2 console > Security Groups > select Bbruceeb1-env > Incoming > Add SSH with source 0.0.0.0/0.
+
+Click EC2 Instances for Bbruceeb1-env and get public IP: 52.36.184.13
+
+Go to EB console, select the instance and env, select Configurations > Security > Modify > EC2 Key pair - Select "AWS_E3_KeyPair2" and Apply.
+
+After instance restarts, SSH using putty to the EB instance.
+
+App location: /opt/python/current/app/FlaskApp <-- Might not need the FlaskApp directory itself.
+
+App log location(?): /var/log/httpd/access_log and error_log
+
+I manually moved the files from app/FlaskApp up to app/.  Then I tried again in the browser.  Got a different error in the browser - 500 error.  In the httpd error_log:
+
+[Sat Jul 14 22:03:37.528007 2018] [:error] [pid 2666] [remote 68.196.31.5:28160] ModuleNotFoundError: No module named 'requests'
+
+If I run "pip freeze", it lists requests:
+
+    pip freeze
+    requests==1.2.3
+
+That version is OK, as the requirements.txt file specifies "requests<2.19".
+
+I tried restarting the app servers (EB console > Instance > Action > Restart Application Server(s)) but that did not help either.
+
+Tried rebuilding the environment.  Disconnected SSH and restarted the instance.
+
+Next thing to try is to build the application source bundle (deploy-app.zip) with only the application files inside FlaskApp/ and reupload to S3 and rebuild the environment.
+
+    cd /home/ec2-user/environment/exercise-rds/FlaskApp
+    rm -rf ~/deploy-app.zip
+    zip -r ~/deploy-app.zip .
+    less ~/deploy-app.zip (check the directories and files)
+    aws s3 cp ~/deploy-app.zip s3://ex8bucketbrbruce/
+
+That worked.  Did not need to change the version or update the EB instance or env.  Just replaced the old zip with new zip in S3, and rebuilt the EB environment.  In the EB event log, there was no error message this time about the WSGIPath.  The /opt/python/current/app directory had the application.py and other files, including the requirements.txt file, and the rebuild must have redeployed the app and executed the pip commands automatically.
+
+4. The app still gets a 500 server error, but the httpd error_log shows it's because of the missing env settings.  I need to set them in the EB instance config page.
+
+EB Console > (select instance) > Configuration > Software - Scroll down to Environment Properties:
+
+* DATABASE_HOST=edx-photos-db.ccd69a3vcffc.us-west-2.rds.amazonaws.com  
+* DATABASE_USER=web_user  
+* DATABASE_PASSWORD=ShowMeTheMoney
+* DATABASE_DB_NAME=Photos  
+* FLASK_SECRET=asdfwe2342s  
+* PHOTOS_BUCKET=bbruceedxbucket  
+
+5. The EB instance is not able to communicate with the RDS database.  Need to update the security group.
+
+    [Sat Jul 14 23:50:28.361525 2018] [:error] [pid 4911] [remote 68.196.31.5:168] mysql.connector.errors.InterfaceError: 2003: Can't connect to MySQL server on 'edx-photos-db.ccd69a3v
+
+RDS is configured to use security group "rds-launch-wizard", which is configured in the Inbound rule Source to accept connections to port 3306 from Cloud9 security group, and from web-server-sg security group.  The EC2 instances and the ELB were configured to use this security group.  
+
+I think we need to get the EB security group, and add it as a source sg in the "rds-launch-wizard" security group for port 3306.
+
+EC2 Console > Instances - select BBruceeb1-env.  Looks in Description for security group:  __awseb-e-cz35wnbsmc-stack-AWSEBSecurityGroup-JLN7HCWR39MD__  
+Group id: __sg-016d7450f169ba56c__  
+
+EC2 Console > Security groups - select rds-launch-wizard.  Select Inbound.  Edit.  Add MYSQL/Aurora, and select the EB security group id.  
+
+Uh oh, it does not show up in the dropdown list if you type "sg-" in source.  This is because the EB instance is not in the same VPC as the app.
+
+There is a Network configuration card, but it says the env is not part of a VPC.  I think that is a major problem.  It should be part of the same VPC as the RDS.  Otherwise, the security groups can't be shared.
+
+Start over from scratch.  I terminated the Bbruceeb1-env instance.  Also deleted the Bbruceeb1 application.
+
+EB Console > Get Started (works now.)  Shows a page with "Create a web app".
+
+App Name: bbruceeb2  
+Platform: Python  
+App Code: Upload  
+App Code S3 URL: https://s3-us-west-2.amazonaws.com/ex8bucketbrbruce/deploy-app.zip
+
+Important!!!  Click "Configure More Options" instead of creating the instance right away, so we can set up the VPC and security groups.
+
+Configure Bbruceeb2-env: 
+Configuration Presets: Low Cost (Free Tier Eligible)  
+Software: Env Properties: (Enter same env settings as above)
+Capacity: Single Instance (default is OK)
+Instances: (Need to set Security groups after setting VPC.  Come back later)
+Security: EC2 Key pair: AWS_E3_KeyPair2
+Network: VPC: edx-build-aws-vpc
+Network: Instance subnets: Check "Assign Public IP address" and select the public-a and public-b subnets.  (Because there is no load balancer with a single instance EB).
+
+Go back to Instances, and select "web-server-sg" as the EC2 security group.  This group has access to RDS already.
+
+Create App
+
+This time, the app started and I could see the upload form and saved images.  So the EB now has access to RDS.
+
+BUT, the images are broken.  There is an access error in the S3 image links.  EB needs to have access to S3 service.  Need to use Roles for API access.  (Security groups are for network access)
+
+There are roles for S3 access already created.  "ec2-webserver-role" has permission policies for AmazonS3FullAccess and AmazonRekognitionReadOnlyAccess.
+
+EB has a role already set up:  __aws-elasticbeanstalk-ec2-role__ (Listed under the Security panel in Configuration).  Add the same permissions there.
+
+IAM Console > Roles > aws-elasticbeanstalk-ec2-role > Attach Permissions:  
+* AmazonS3FullAccess  
+* AmazonRekognitionReadOnlyAccess  
+
+NOTE: I tried adding them to aws-elasticbeanstalk-service-role first, but that did not work.
+
+That worked.  I can see pictures now.
+
+But, when I upload, there was a server error.  httpd error_log shows:
+
+    [Sun Jul 15 01:48:17.460386 2018] [:error] [pid 2855] [remote 68.196.31.5:172] botocore.exceptions.NoRegionError: You must specify a region.
+
+Need to set env property for AWS_DEFAULT_REGION=us-west-2.  This setting was in the /Deploy/app.ini file, but that is not used for EB.  I added it to the EB instance configuration in the Software panel.
+
+FINALLY WORKS!!!!
+
+
+
+
+
+### Side Note:  Installing EB CLI
+
+https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/eb-cli3-install.html?icmpid=docs_elasticbeanstalk_console
+
+    pip install awsebcli --upgrade --user
+
+To update the install, just run the same command again.
+
+$PATH already has ~/.local/bin in it for the Cloud9 server.
+
+Some commands:
+
+    eb ....
+
+vs ???
+
+    aws elasticbeanstalk ...
+
+
+    
+---------------------
+
+When you create a Elastic Beanstalk env, it automatically creates the following:
+
+    EC2 instance – An Amazon Elastic Compute Cloud (Amazon EC2) virtual machine configured to run web apps on the platform that you choose.
+
+    Each platform runs a specific set of software, configuration files, and scripts to support a specific language version, framework, web container, or combination thereof. Most platforms use either Apache or nginx as a reverse proxy that sits in front of your web app, forwards requests to it, serves static assets, and generates access and error logs.
+
+    Instance security group – An Amazon EC2 security group configured to allow ingress on port 80. This resource lets HTTP traffic from the load balancer reach the EC2 instance running your web app. By default, traffic isn't allowed on other ports.
+
+    Load balancer – An Elastic Load Balancing load balancer configured to distribute requests to the instances running your application. A load balancer also eliminates the need to expose your instances directly to the internet.
+
+    Load balancer security group – An Amazon EC2 security group configured to allow ingress on port 80. This resource lets HTTP traffic from the internet reach the load balancer. By default, traffic isn't allowed on other ports.
+
+    Auto Scaling group – An Auto Scaling group configured to replace an instance if it is terminated or becomes unavailable.
+
+    Amazon S3 bucket – A storage location for your source code, logs, and other artifacts that are created when you use Elastic Beanstalk.
+
+    Amazon CloudWatch alarms – Two CloudWatch alarms that monitor the load on the instances in your environment and are triggered if the load is too high or too low. When an alarm is triggered, your Auto Scaling group scales up or down in response.
+
+    AWS CloudFormation stack – Elastic Beanstalk uses AWS CloudFormation to launch the resources in your environment and propagate configuration changes. The resources are defined in a template that you can view in the AWS CloudFormation console.
+
+    Domain name – A domain name that routes to your web app in the form subdomain.region.elasticbeanstalk.com.
+
+    All of these resources are managed by Elastic Beanstalk. When you terminate your environment, Elastic Beanstalk terminates all the resources that it contains.
 
 

@@ -1,0 +1,36 @@
+Took a lot of trial and error to get it working. :) Not sure this is the best or only way, but it worked.
+
+*    Need to add elasticbeanstalk:* and autoscaling:* permissions to the aws user or you won't be able to create or start the elastic beanstalk (EB) instance.
+
+*    Need to change the deploy-app.zip file so the flask app files (application.py, etc) are at the root. Get rid of /Deploy and /FlaskApp. Rezip and upload to S3.
+
+The first few time I created the EB app instance, I missed out a lot of important settings like the VPC and security groups and roles. Click "Configure More Options" instead of creating the instance right away. The important settings are:
+
+*    Platform: Python
+
+*    Application code upload S3 URL: https://s3-us-west-2.amazonaws.com/(bucket_name)/deploy-app.zip (Not s3://(bucket_name)/deploy-app.zip like it was when uploading from the Cloud9 command line)
+
+*    Software: Env Properties: Set all the DATABASE_* properties, and also the AWS_DEFAULT_REGION=us-west-2. As mentioned, if you forget that, you will get a server error when you try to upload pictures later on.
+
+*    Capacity: Single Instance (Keep the default)
+
+*    Instances: (Need to set Security groups after setting VPC. Come back later)
+
+*    Security: EC2 Key pair: AWS_E3_KeyPair2 (in case you need to SSH in to debug)
+
+*    Network: VPC: edx-build-aws-vpc - If you don't set this initially, you can't change it later. You need to use the same VPC as the RDS so you can reuse the same security groups which allows network access to the RDS.
+
+*    Network: Instance subnets: Check "Assign Public IP address" and select the public-a and public-b subnets. (The EB instance has to be public because there is no load balancer since it's a single instance EB).
+
+*    Go back to Instances, and select "web-server-sg" as the EC2 security group. This group has network access to RDS already.
+
+Now you can create the EB app.
+
+In the browser, I could see the app and data from the DB but the images were missing. I had to add permissions for the EB instance to access S3 API, like was done for the "ec2-webserver-role". On the IAM console, search for the "aws-elasticbeanstalk-ec2-role" role and attach the same permissions:
+
+*    AmazonS3FullAccess
+*    AmazonRekognitionReadOnlyAccess
+
+If you need to SSH in and debug the EB instance, the error log is in /var/log/httpd/error_log.
+
+The application gets deployed to /opt/python/current/app/.
