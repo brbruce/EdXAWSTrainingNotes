@@ -884,4 +884,53 @@ When you create a Elastic Beanstalk env, it automatically creates the following:
 
     All of these resources are managed by Elastic Beanstalk. When you terminate your environment, Elastic Beanstalk terminates all the resources that it contains.
 
+---------------------------
+
+== Week 4
+
+=== Amazon Cognito to authenticate and authorize.
+
+User pool:
+* Attributes  
+* Policies  
+
+App Client - Can have different read/write permissions
+
+=== Login process:
+
+1) Login - When the app gets the login request, it creates a "csrf_state" random hex bytes.  Then it creates a redirect URL to the Cognito server.
+
+The URL contains the app's Cognito client id, the csrf_state, and a callback URL to the app.  
+
+2) The browser redirects to the Cognito server and logs in.  The Cognito server will redirect back to the app's callback URL, and passes back a code which indicates the user was authenticated, and the csrf_state.
+
+3) The app gets the callback request.  It will directly call the Cognito server to check the code is valid.  We pass the app's Cognito client id and the code, and the original redirect URL.  The Cognito server will return some tokens. ID and Access tokens.
+
+4) The app processes the returned tokens, and verifies them using some keys from the Cognito user pool.  It also checks the csrf_state with the original one in the session.  From the ID token, you get the cognito user name, nickname, etc.
+
+=== TLS to secure connection
+
+HTTPS connection to prevent eavesdropping and MITM attacks.  Need server certificate.
+
+Amazon certificate manager - For certs to be used on AWS services like ELB.  Need Domain.
+
+Browser to ELB.
+
+End-to-End encryption - Might need more security.
+* In transit
+    - Between ELB and EC2.  HTTPS and a cert for EC2.
+    - API calls. HTTPS endpoints for S3, Rekognition and Cognito.
+* At rest.  (In a DB)
+    - Cognito - handles encryption
+    - RDS - enable encryption flag.
+    - S2 - enable encryption flag.  Bucket or per object level.
+    - Rekognition - Does not store data.
+    - EC2 - Uses EBS
+    - EBS - (Elastic block store) enable encryption flag.
+
+
+
+
+
+
 
