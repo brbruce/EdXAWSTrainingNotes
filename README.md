@@ -886,9 +886,9 @@ When you create a Elastic Beanstalk env, it automatically creates the following:
 
 ---------------------------
 
-== Week 4
+## Week 4
 
-=== Amazon Cognito to authenticate and authorize.
+### Amazon Cognito to authenticate and authorize.
 
 User pool:
 * Attributes  
@@ -896,9 +896,9 @@ User pool:
 
 App Client - Can have different read/write permissions
 
-=== Login process:
+### Login process:
 
-1) Login - When the app gets the login request, it creates a "csrf_state" random hex bytes.  Then it creates a redirect URL to the Cognito server.
+1) Login - When the app gets the login request, it creates a "csrf_state" random hex bytes.  Then it creates a redirect URL to the Cognito server.  Sends to the browser.
 
 The URL contains the app's Cognito client id, the csrf_state, and a callback URL to the app.  
 
@@ -908,7 +908,7 @@ The URL contains the app's Cognito client id, the csrf_state, and a callback URL
 
 4) The app processes the returned tokens, and verifies them using some keys from the Cognito user pool.  It also checks the csrf_state with the original one in the session.  From the ID token, you get the cognito user name, nickname, etc.
 
-=== TLS to secure connection
+### TLS to secure connection
 
 HTTPS connection to prevent eavesdropping and MITM attacks.  Need server certificate.
 
@@ -927,6 +927,181 @@ End-to-End encryption - Might need more security.
     - Rekognition - Does not store data.
     - EC2 - Uses EBS
     - EBS - (Elastic block store) enable encryption flag.
+
+### AWS Certificate manager to set up HTTPS on ELB
+
+ELB - When creating the LB, need to add HTTPS listener.  Will be prompted for a certificate.  Hostname must match the certificate.  Can set up a CNAME for the server in DNS to match the cert.
+
+Security group must include both port 80 and 443.
+
+Can integrate ELB with Amazon Web Application Firewall to prevent attacks.  Sql injection, Cross site scripting, etc.
+
+### SSH Tunnel from localhost to C9 server (For testing without ELB certs)
+
+Setting up local PC port forwarding (using Putty, no Cygwin installed):
+
+http://realprogrammers.com/how_to/set_up_an_ssh_tunnel_with_putty.html
+
+    Create a session in PuTTY and then select the Tunnels tab in the SSH section. 
+
+    In the Source port text box enter 3306. This is the port PuTTY will listen on on your local machine. It can be any standard Windows-permitted port. 
+
+    In the Destination field immediately below Source port enter 127.0.0.1:3306. This means, from the server, forward the connection to IP 127.0.0.1 port 3306. 
+
+    Click the Add button.  Return to the Session tab and click Save
+
+Using ssh command in bash shell:
+
+    ssh -i certname ec2-user@(server IP) -L localhost(on pc):5000:localhost(on server):5000
+
+
+## Exercise 9 - Add sign-in using Cognito
+
+Login with edXProjectUser3.  
+Start RDS server.  (Was already running.  Started automatically)  
+Set up Amazon Cognito user pool.  
+* Log in with email  
+* Required attr: Nickname.  
+* Next  
+* Next (Security Policy)  
+* Next (MFA)  
+* Verification Type = Link  
+* Skip to App Clients.  Create new app client named "WebsiteClient"  
+* Create Pool.  
+
+Pool Id: __us-west-2_f7H1OM1ys__
+
+Pool ARN: __arn:aws:cognito-idp:us-west-2:570589970431:userpool/us-west-2_f7H1OM1ys__
+
+* App Client Settings -  
+* Domain Name - https://brbruce-ex9.auth.us-west-2.amazoncognito.com  
+* App Client:
+    - ID: 7l7q0a6u04e5ffjs1sqm6fjeoh  
+    - Secret: 19cs5t5ba5di21qs8usffv16qnincmf9rdciptf1c9iqq4rvvli4  
+
+Cloud9: Download updated code:
+
+    cd ~/environment 
+    wget https://us-west-2-tcdev.s3.amazonaws.com/courses/AWS-100-ADG/v1.0.0/exercises/ex-cognito.zip
+    unzip ex-cognito.zip
+
+The login, logout and callback route functions require config params, which are loaded from the server env.  Need to set that up.
+
+Start puttygen and load private key "AWS_E3_KeyPair2.ppk".  Copy private key string and copy and paste in .ssh/authorized_keys file.
+
+Check public IP of cloud9 instance: (Share > Application = 35.160.226.19.  Or check running EC2 instance)
+
+Start Putty and set up SSH tunnel. (Follow details above)  
+
+* ec2-user@35.160.226.19    
+* Connection > SSH > Auth > Private Key > ....  
+* Connection > SSH > Tunnel > Source port 5000, server port localhost:5000.  Add.  
+* Save connection.  Open.  Test in browser.  Worked.    
+http://localhost:5000 (not https)
+
+## Exercise 9 Part 2 - Enable "Log in with Amazon"
+
+https://login.amazon.com/website
+
+NOTE: Only set up the application.  Do not follow the rest of the instructions on the site above.
+
+### Amazon Developer Registration
+
+Using my login brian@brianbruce.org
+
+Display Name: Brian Bruce
+
+Merchant picker: Login with Amazon
+
+Login with Amazon App Developer Home Page:  
+https://sellercentral.amazon.com/home?ref_=mp_home_logo_xx&cor=mmp_NA
+
+Register New Application:  
+* Name: EdXEx9  
+* Privacy URL: https://brbruce-ex9.auth.us-west-2.amazoncognito.com/privacy.html  (Should I use http://35.160.226.19:5000 instead?)  
+
+Web settings:  
+* Client Id: amzn1.application-oa2-client.115c03197cab43978421b67260434289   
+* Client Secret: (Secret)  
+* Allowed return URLs: https://brbruce-ex9.auth.us-west-2.amazoncognito.com/login   
+* Also added return URL:  https://brbruce-ex9.auth.us-west-2.amazoncognito.com/oauth2/idpresponse (Due to error message. See below)
+
+
+### Set up Cognito to support LoginWithAmazon
+
+In Cognito User Pools, you will need to add Log in with Amazon as an identity provider. For more information, see Configuring Federation with a Social Identity Provider.
+
+https://docs.aws.amazon.com/cognito/latest/developerguide/identity-pools.html
+
+https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-identity-provider.html
+
+Enable Log in with Amazon as an identity provider with your Amazon Cognito app client
+The application wants a nickname. This will need to be mapped from a Log in With Amazon attribute to a User Pool attribute.
+
+Go to AWS Cognito Console.  (Need to log in as root user.  EdX user does not have role for Cognito.)
+
+Manage User Pools:  photos-pool
+
+Select Federation in side menu.  Enable Identity Providers.  Select Log in with Amazon:
+
+* Amazon App Id:  (Client Id from app above)  amzn1.application-oa2-client.115c03197cab43978421b67260434289  
+* App Secret: (from secret above)  
+* Authorize_scope: profile (guessing based on cognito user pool setup required attr = nickname and login with email above)   
+    - See https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-identity-provider.html  
+    - https://developer.amazon.com/docs/login-with-amazon/customer-profile.html  
+    - Profile scope includes user_id, name and email.
+
+Click Enable login with Amazon.
+
+Click Configure Attribute Mapping.  Click Amazon.  
+* Amazon Attribute: user_id = User pool attribute: Username (Cannot change this!!!)   
+* Amazon Attribute: email = User pool attribute: email
+* Amazon Attribute: name = User pool attribute: nickname   
+   
+
+Save changes.
+
+You will also need to choose which identity providers to enable for each app on the Apps settings tab under App integration.
+
+https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-app-idp-settings.html
+
+On the Cognito console, select App Client Settings.
+
+App client WebsiteClient   
+ID 7l7q0a6u04e5ffjs1sqm6fjeoh   
+
+Change checkbox from Cognito User Pool to LoginWithAmazon.  Save changes.
+
+Tested login.  Got some errors because of the scope.  Set to "profile" as above.
+
+Tested again.  Got error that redirect URL was not whitelisted:
+
+    Error Summary
+    400 Bad Request
+    The redirect URI you provided has not been whitelisted for your application. Please add your redirect URI in the 'Allowed Return URLs' section under 'Web Settings' on the Amazon Seller Central App Console for Login with Amazon.
+    Request Details
+    client_id=amzn1.application-oa2-client.115c03197cab43978421b67260434289
+    redirect_uri=https%3A%2F%2Fbrbruce-ex9.auth.us-west-2.amazoncognito.com%2Foauth2%2Fidpresponse
+    scope=profile
+    response_type=code 
+
+Added to allowed return URL: (In LoginWithAmazon console app page) https://brbruce-ex9.auth.us-west-2.amazoncognito.com/oauth2/idpresponse 
+
+Tested.  Got Amazon login page (brian@brianbruce.org).  Got prompted for access to Profile.  Allowed.
+
+The test app appeared, and I was logged in with "Brian Bruce"!
+
+Also worked when I enabled BOTH LoginWithAmazon and Cognito user pool.  Login page shows both Amazon id and email login.
+
+## Exercise 9 Part 3 - Optional Advanced Challenge 2
+
+A second advanced challenge: the code is currently signing out users after the Amazon Cognito access_token expires. 
+
+Instead of signing users out when the access_token expires, you can exchange the refresh_token for id_token and access_token. For more information, see TOKEN Endpoint. Replace the return None code above with code to exchange the refresh_token. If successful, the user session can be repopulated and logged in with flask_login.login_user. 
+
+https://docs.aws.amazon.com/cognito/latest/developerguide/token-endpoint.html
+
+
 
 
 
