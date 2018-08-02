@@ -263,7 +263,7 @@ Set up run configuration with ENV vars PHOTOS_BUCKET and FLASK_SECRET.
 
 Edit security group for Cloud9 EC2 instance, inbound rule, add rule, custom tcp port 5000 from source 0.0.0.0/0.
 
-In Cloud9 IDE, click Share just to check the public IP address. Opens dialog window with IP address.  Copy the IP address:  54.214.132.138
+In Cloud9 IDE, click "Share" just to check the public IP address. Opens dialog window with IP address.  Copy the IP address:  54.214.132.138
 
 Go to URL http://54.214.132.138:5000
 
@@ -976,6 +976,8 @@ Pool ARN: __arn:aws:cognito-idp:us-west-2:570589970431:userpool/us-west-2_f7H1OM
 * App Client Settings -  
 * Domain Name - https://brbruce-ex9.auth.us-west-2.amazoncognito.com  
 * App Client:
+    - Callback URL: http://localhost:5000/callback
+    - Sign out URL: http://localhost:5000/
     - ID: 7l7q0a6u04e5ffjs1sqm6fjeoh  
     - Secret: 19cs5t5ba5di21qs8usffv16qnincmf9rdciptf1c9iqq4rvvli4  
 
@@ -986,6 +988,12 @@ Cloud9: Download updated code:
     unzip ex-cognito.zip
 
 The login, logout and callback route functions require config params, which are loaded from the server env.  Need to set that up.
+
+* COGNITO_POOL_ID=us-west-2_f7H1OM1ys  
+* COGNITO_CLIENT_ID=7l7q0a6u04e5ffjs1sqm6fjeoh  
+* COGNITO_CLIENT_SECRET=19cs5t5ba5di21qs8usffv16qnincmf9rdciptf1c9iqq4rvvli4  
+* COGNITO_DOMAIN=brbruce-ex9.auth.us-west-2.amazoncognito.com (No https://)  
+* BASE_URL=http://localhost:5000  
 
 Start puttygen and load private key "AWS_E3_KeyPair2.ppk".  Copy private key string and copy and paste in .ssh/authorized_keys file.
 
@@ -1097,15 +1105,206 @@ Also worked when I enabled BOTH LoginWithAmazon and Cognito user pool.  Login pa
 
 A second advanced challenge: the code is currently signing out users after the Amazon Cognito access_token expires. 
 
-Instead of signing users out when the access_token expires, you can exchange the refresh_token for id_token and access_token. For more information, see TOKEN Endpoint. Replace the return None code above with code to exchange the refresh_token. If successful, the user session can be repopulated and logged in with flask_login.login_user. 
+Instead of signing users out when the access\_token expires, you can exchange the refresh\_token for id\_token and access\_token. For more information, see TOKEN Endpoint. Replace the return None code above with code to exchange the refresh\_token. If successful, the user session can be repopulated and logged in with flask\_login.login_user. 
 
 https://docs.aws.amazon.com/cognito/latest/developerguide/token-endpoint.html
 
+Changes:
 
+user\_loader() - Instead of returning None if session is expired, call a new method return refresh\_token\_and\_get_user().
 
+refresh\_token\_and\_get\_user() - New method. Copied from callback() and modified to call the Cognito server with refresh\_token request params (per token_endpoint.html)
 
+    request_parameters = {'grant_type': 'refresh_token',
+                          'client_id': config.COGNITO_CLIENT_ID,
+                          'refresh_token': session['refresh_token']}
 
+No need for the csrf_state code because it's server to server.
 
+Create new User object with user.id, and set nickname and expires from response into Session, and also set nickname in user.  (This is done in user\_loader if session was not expired.)
 
+I also check that the nickname in the refreshed id\_token to make sure it matches the original nickname.
 
+The refresh request does not return a new refresh\_token.  You can just keep using the original one again and again.
+
+To test, I changed the expiry datetime object from 3600 seconds from now to 60 seconds from now using timedelta().  Expiry happens quicker, and I was able to see that the session get refreshed with new id\_token.
+
+## Exercise Polly
+
+https://docs.aws.amazon.com/cli/latest/reference/polly/index.html
+
+aws polly synthesize-speech help
+
+aws polly synthesize-speech --output-format mp3 --text 'Any text you want' --voice-id Matthew output.mp3
+
+Permission error.  Need to go to IAM and edit edXProjectPolicy and add Polly permission, for all actions, for all resources and save.  (NOTE: I didn't know that the edXProjectUser3 can edit the policy directly.)
+
+To find voice details:
+
+aws polly describe-voices | less <-- Search for Matthew, etc.
+
+Australian male voice: Russell
+
+Edit application.py and add a new route "/members_voice" which generates the audio stream.  Test:
+
+http://localhost:5000/members_voice
+
+Update the HTML template to include an audio player.
+
+    Open /exercise-cognito/FlaskApp/templates/main.html from your previous exercise.
+    Find a location in the HTML template where the user is greeted. It will look like this:
+
+    <li><p class="navbar-text">Hello, {{current_user.nickname}}!</p></li>
+
+    Replace all of this code with the version below that includes an audio player.
+
+    <li><p class="navbar-text">Hello, {{current_user.nickname}}!
+    <span class="glyphicon glyphicon-volume-up" style="cursor: pointer;" onclick="document.getElementById('audio').load();document.getElementById('audio').play();"></span>
+    <audio id="audio">
+      <source src="{{ url_for('members_voice') }}" type="audio/mpeg">
+    </audio></p>
+    </li>
+
+Click the Speaker icon next to the user name to hear the message.  Worked!
+
+## Using certs for SSL on the application (Instead of ssl tunnel)
+
+Watch video: https://courses.edx.org/courses/course-v1:AWS+OTP-AWSD1+1T2018/courseware/16cc4884c46f4066b65346d817cc027c/16e3cbec69f34431a8b4df2da848b844/4?activate_block_id=block-v1%3AAWS%2BOTP-AWSD1%2B1T2018%2Btype%40vertical%2Bblock%4081dba4f4a38946a0a50d5505547e44c6
+
+Go to Certificate Manager:
+
+https://us-west-2.console.aws.amazon.com/acm/home?region=us-west-2#/firstrun/
+
+Error.  Must add permission to edX user.  Add permission directly.  Search for "Certificate". Add "AWSCertificateManagerFullAccess"
+
+Click Provision Certificates > Get Started > Request a public certificate
+
+* Domain Name: photos.aws.castor.nyc
+
+Ownership validation: via DNS change or email.  Use DNS.
+
+Amazon will instruct you to add a new CNAME record:  
+* CNAME: _c33bed5a31ce327a1bdade02ffb18ce2.photos.edx.castor.nyc. (Note the trailing ".", which indicates absolute FQDN)  
+* Value: _d80585a3a31684ff7f89fe639a000d41.acm-validations.aws.  
+
+Go to Network Solutions and add a CNAME record:
+* Alias: _c33bed5a31ce327a1bdade02ffb18ce2.photos.edx (NOTE: Do NOT include ".castor.nyc.".  It will be added automatically)  
+* Refers to host name - Leave unchecked.
+* Other host: Click this radio button and enter "_d80585a3a31684ff7f89fe639a000d41.acm-validations.aws." (Include the trailing ".")
+
+Save and save.  Wait a while, and the Amazon cert request will get issued.
+
+To check CNAME record:
+
+    > host -t cname _c33bed5a31ce327a1bdade02ffb18ce2.photos.edx.castor.nyc.  
+
+    _c33bed5a31ce327a1bdade02ffb18ce2.photos.edx.castor.nyc is an alias for _d80585a3a31684ff7f89fe639a000d41.acm-validations.aws.
+
+Set up ELB with new cert:    
+* EC2 console > Load Balancer  
+* Type: HTTP/HTTPS   
+* Name: photos-loadbal  
+* Listeners: Add HTTP and HTTPS  
+* VPC: The edx one  
+    - Select public a and b subnets
+* Next  
+* Choose cert from ACM : photos.edx.castor.nyc   
+* Next  
+* Create new security group : http-and-https-sg with both 80 and 443 open  
+* Next  
+* Create new target group from LB to webservers: photos-lb-to-websvrs  (We can use port 80 inside the VPC.)  
+* Next register the 2 webservers with the target group, on port 80.  
+* Create the LB.  
+
+New DNS name for the app when using the LB:
+
+photos-loadbal-2112186708.us-west-2.elb.amazonaws.com
+
+Set up a CName record from the DNS name we used on the cert to the DNS name above:  
+* CNAME: photos.edx.castor.nyc (Enter "photos.edx")  
+* Other host: "photos-loadbal-2112186708.us-west-2.elb.amazonaws.com."
+
+Check the cname is created using:
+
+    > host -t cname photos.edx.castor.nyc.     
+
+    photos.edx.castor.nyc is an alias for photos-loadbal-2112186708.us-west-2.elb.amazonaws.com.
+
+You will also need to update the BASE_URL setting, which is used by the app server and Cognito to redirect requests.
+
+In app.ini, you will need to set BASE_URL from http://localhost:5000 to https://photos.edx.castor.nyc
+
+In Cognito, under App Client, change the callback and signout URLs from http://localhost:5000/* to https://photos.edx.castor.nyc/*
+
+If you don't update all the URLs, you will get a "redirect_mismatch" error in the browser on login.
+
+### NOTE on redeploying app to existing EC2 server:
+
+Need to deploy the latest cognito-enabled app to the 2 webservers to test load balancer with SSH.
+
+Must update Deploy/app.ini with new env settings:
+
+    env = COGNITO_CLIENT_ID=7l7q0a6u04e5ffjs1sqm6fjeoh
+    env = COGNITO_CLIENT_SECRET=19cs5t5ba5di21qs8usffv16qnincmf9rdciptf1c9iqq4rvvli4
+    env = COGNITO_DOMAIN=brbruce-ex9.auth.us-west-2.amazoncognito.com
+    env = COGNITO_POOL_ID=us-west-2_f7H1OM1ys
+    env = BASE_URL=https://photos.edx.castor.nyc
+
+NOTE: Must use new DNS name URL with https.
+
+Deploy updated app to S3 server to deploy to webserver 1 and 2:
+
+    rm ~/deploy-app.zip
+    cd ~/environment/exercise-rds
+    zip -r ~/deploy-app.zip Deploy/ FlaskApp/
+    aws s3 cp ~/deploy-app.zip s3://ex8bucketbrbruce/
+
+The app is only deployed from userdata.txt on the first boot.  In order to rerun the userdata commands, you need to ssh to each instance, and run the commands again, as root.  (NOTE: I tried updating the userdata.txt in each instance via the console, and then restarting or rebooting, but it does NOT rerun.)
+
+    cd /photos
+    sudo rm -rf Deploy/
+    sudo rm -rf deploy-app.zip
+    sudo rm -rf FlaskApp/
+    sudo aws s3 cp s3://ex8bucketbrbruce/deploy-app.zip .
+    sudo unzip deploy-app.zip
+    sudo pip-3.6 install -r FlaskApp/requirements.txt
+    sudo mv -f Deploy/nginx.conf /etc/nginx/nginx.conf
+    sudo mv -f Deploy/uwsgi.conf /etc/init/uwsgi.conf
+    sudo restart uwsgi
+    sudo service nginx restart
+
+You can manually edit files on the servers, but you need to restart uwsgi and nginx.
+
+NOTE: The speech icon did not work after switching to the EX2 instances and ELB.  The /var/log/uwsgi.log showed:
+
+    botocore.exceptions.ClientError: An error occurred (AccessDeniedException) when calling the SynthesizeSpeech operation: User: arn:aws:sts::570589970431:assumed-role/ec2-webserver-role/i-0393af09fb8223e3c is not authorized to perform: polly:SynthesizeSpeech
+
+Need to add permission for Polly to the webservers.
+
+IAM > Roles > ec2-webserver-role - Attach policy > AmazonPollyReadOnlyAccess
+
+Next problem: Still not getting the voice audio.  In the /var/log/uwsgi.log file:
+
+    [2018-08-02 02:27:12,544] ERROR in app: Exception on /members_voice [GET]
+    io.UnsupportedOperation: fileno
+
+    The above exception was the direct cause of the following exception:
+
+    Traceback (most recent call last):
+        ...
+          File "/usr/local/lib/python3.6/site-packages/werkzeug/wsgi.py", line 893, in wrap_file
+            return environ.get('wsgi.file_wrapper', FileWrapper)(file, buffer_size)
+        SystemError: <built-in function uwsgi_sendfile> returned a result with an error set
+
+Found this post:  https://beenje.github.io/blog/posts/uwsgi-send_file-and-python35/
+
+Solution is to add this line to the Deploy/app.ini file (which is actually uwsgi.ini file):
+
+    wsgi-disable-file-wrapper = true
+
+Worked!!!!
+
+-------------------------------
+
+## Week 5
 
