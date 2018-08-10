@@ -2,8 +2,9 @@
 
 https://courses.edx.org/courses/course-v1:AWS+OTP-AWSD1+1T2018/course/
 
-----------------
+-----------------------------------------------------------------------------  
 # Week 1 - 6/28-7/1/2018
+-----------------------------------------------------------------------------  
 
 Create AWS Account: bbawsjunk1  (This is the Root AWS account)
 
@@ -56,7 +57,9 @@ VPCs are region scope, but subnets are AZ scope.  Must define same subnet in eac
 
 Use Cloud Formation Templates to automate network configurations.
 
+-----------------------------------------------------------------------------  
 ## Exersize 3
+-----------------------------------------------------------------------------  
 edx-build-aws-vpc: vpc-08a0cf9dab862b94d
 
 edx-build-aws-vpc: subnet-03408302057b29cc0
@@ -99,6 +102,8 @@ Execute the command below to get the instance user data:
 
     curl http://169.254.169.254/latest/user-data 
 
+-----------------------------------------------------------------------------  
+
 ### Notes and Resources
 https://courses.edx.org/courses/course-v1:AWS+OTP-AWSD1+1T2018/courseware/6f34da6ab7e44b068f5d2d106e8faf61/0fab6dc762ba45e7ac1db99ee2c3ed82/?child=first
 
@@ -124,8 +129,9 @@ This is a service that intercepts calls to 169.254.169.254 from your EC2 instanc
 #### EC2 User Guide
 https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html
 
--------------------------------
+-----------------------------------------------------------------------------  
 # Week 2 - 7/1-7/6
+-----------------------------------------------------------------------------  
 
 ### AWS APIs
 
@@ -140,7 +146,9 @@ AWS services page > IAM > Policies : Create "edXProjectPolicy" with json data.  
 
 NOTE: Always grant "least privileges"  
 
+-----------------------------------------------------------------------------  
 ## Exersize 4
+-----------------------------------------------------------------------------  
 
 Create user "edXProjectUser3" and attach policy "edXProjectPolicy".  
 Download credentials.csv file. (Saved in C:\Users\Brian\Documents\\_Tech Info & Serial Numbers\PublicPrivateKeys\AWS Training Keys)  
@@ -188,6 +196,8 @@ Installed python and boto3.  Run python and create ec2 client:
 
 Gets json output.
 
+-----------------------------------------------------------------------------  
+
 ### S3 Object Storage service
 
 Buckets for storage.  Bucket is in a region.
@@ -214,7 +224,9 @@ Command to list S3 buckets:
 
 Need to install boto3 (sudo pip-3.6 install boto3)
 
+-----------------------------------------------------------------------------  
 ## Exersize 5
+-----------------------------------------------------------------------------  
 
 Architecture:  
 * Amazon EC2 - App server  
@@ -282,7 +294,9 @@ Modified code to sort images by LastModified (See application_sorted_by_lastModi
 
 https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Client.list_objects
 
+-----------------------------------------------------------------------------  
 ## Exercise 6 - Amazon Rekognition
+-----------------------------------------------------------------------------  
 
 Same as exercise 5.  Calls Rekognition service with uploaded picture to return labels.
 
@@ -305,8 +319,9 @@ https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html
 
 (Deleted access keys)
 
--------------------------------
+-----------------------------------------------------------------------------  
 # Week 3 - 7/11 - 
+-----------------------------------------------------------------------------  
 
 Objectives: Add MySQL db instance and use application load balancers.
 
@@ -334,7 +349,9 @@ DB Instance in the cloud - Each instance can have multiple databases.
 
 Need to create an endpoint to connect to the db instance.
 
+-----------------------------------------------------------------------------  
 ## Exercise 7
+-----------------------------------------------------------------------------  
 
 Create a RDS MySql instance:
 
@@ -420,6 +437,8 @@ MySql CLI command:
 
 Stop the RDS Instance.  Instance actions -> Stop.
 
+-----------------------------------------------------------------------------  
+
 ## Connecting Github and Cloud9 instance (Sidenote)
 
 https://docs.aws.amazon.com/cloud9/latest/user-guide/sample-github.html#sample-github-install-git
@@ -500,7 +519,9 @@ LB types:
 * TCP LB  
 * Classic LB  
 
+-----------------------------------------------------------------------------  
 ## Exersize 8
+-----------------------------------------------------------------------------  
 
 1. Start existing RDS Instance - __edx-photos-db__  
 2. Create new security group in VPC __edx-build-aws-vpc__  
@@ -674,7 +695,9 @@ Test app in browser using LB DNS name.  Should still work.  OK!!
 19. Update github with latest changes to the Cloud9 app.
 
 
+-----------------------------------------------------------------------------  
 ## Optional Challenge: Create AWS Elastic Beanstalk to deploy the flask app to.
+-----------------------------------------------------------------------------  
 
 https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create-deploy-python-flask.html
 
@@ -834,9 +857,7 @@ Need to set env property for AWS_DEFAULT_REGION=us-west-2.  This setting was in 
 
 FINALLY WORKS!!!!
 
-
-
-
+-----------------------------------------------------------------------------  
 
 ### Side Note:  Installing EB CLI
 
@@ -856,8 +877,6 @@ vs ???
 
     aws elasticbeanstalk ...
 
-
-    
 ---------------------
 
 When you create a Elastic Beanstalk env, it automatically creates the following:
@@ -884,9 +903,11 @@ When you create a Elastic Beanstalk env, it automatically creates the following:
 
     All of these resources are managed by Elastic Beanstalk. When you terminate your environment, Elastic Beanstalk terminates all the resources that it contains.
 
----------------------------
 
+
+-----------------------------------------------------------------------------  
 ## Week 4
+-----------------------------------------------------------------------------  
 
 ### Amazon Cognito to authenticate and authorize.
 
@@ -955,7 +976,9 @@ Using ssh command in bash shell:
     ssh -i certname ec2-user@(server IP) -L localhost(on pc):5000:localhost(on server):5000
 
 
+-----------------------------------------------------------------------------  
 ## Exercise 9 - Add sign-in using Cognito
+-----------------------------------------------------------------------------  
 
 Login with edXProjectUser3.  
 Start RDS server.  (Was already running.  Started automatically)  
@@ -1007,7 +1030,9 @@ Start Putty and set up SSH tunnel. (Follow details above)
 * Save connection.  Open.  Test in browser.  Worked.    
 http://localhost:5000 (not https)
 
+-----------------------------------------------------------------------------  
 ## Exercise 9 Part 2 - Enable "Log in with Amazon"
+-----------------------------------------------------------------------------  
 
 https://login.amazon.com/website
 
@@ -1101,7 +1126,9 @@ The test app appeared, and I was logged in with "Brian Bruce"!
 
 Also worked when I enabled BOTH LoginWithAmazon and Cognito user pool.  Login page shows both Amazon id and email login.
 
+-----------------------------------------------------------------------------  
 ## Exercise 9 Part 3 - Optional Advanced Challenge 2
+-----------------------------------------------------------------------------  
 
 A second advanced challenge: the code is currently signing out users after the Amazon Cognito access_token expires. 
 
@@ -1129,7 +1156,9 @@ The refresh request does not return a new refresh\_token.  You can just keep usi
 
 To test, I changed the expiry datetime object from 3600 seconds from now to 60 seconds from now using timedelta().  Expiry happens quicker, and I was able to see that the session get refreshed with new id\_token.
 
+-----------------------------------------------------------------------------  
 ## Exercise Polly
+-----------------------------------------------------------------------------  
 
 https://docs.aws.amazon.com/cli/latest/reference/polly/index.html
 
@@ -1167,7 +1196,9 @@ Update the HTML template to include an audio player.
 
 Click the Speaker icon next to the user name to hear the message.  Worked!
 
-## Using certs for SSL on the application (Instead of ssl tunnel)
+-----------------------------------------------------------------------------  
+## Extra work - Using certs for SSL on the application (Instead of ssl tunnel)
+-----------------------------------------------------------------------------  
 
 Watch video: https://courses.edx.org/courses/course-v1:AWS+OTP-AWSD1+1T2018/courseware/16cc4884c46f4066b65346d817cc027c/16e3cbec69f34431a8b4df2da848b844/4?activate_block_id=block-v1%3AAWS%2BOTP-AWSD1%2B1T2018%2Btype%40vertical%2Bblock%4081dba4f4a38946a0a50d5505547e44c6
 
@@ -1304,7 +1335,381 @@ Solution is to add this line to the Deploy/app.ini file (which is actually uwsgi
 
 Worked!!!!
 
--------------------------------
 
-## Week 5
+
+-----------------------------------------------------------------------------  
+## Week 5 - Aug 6 - Aug 10
+-----------------------------------------------------------------------------  
+
+Performance monitoring
+
+AWS XRay - Performance metrics, error reporting. "Trace" data will be sent from EC2 instance to XRay.
+
+AWS Lambda - Move Rekognition from webserver to lambda.  Label generation will be done async.  S3 event from EC2 on upload to Lambda, which calls Rekognition, collects labels and writes to MySql database.
+
+## XRay
+
+XRay Daemon in the EC2 instance instruments the data, and calls XRay APIs.
+
+XRay SDK for Python.  The SDK automatically patches Django and Flask, boto3, web requests, sqllite, mysql connector to "instrument" attach trace data.
+
+Trace data:  
+* Segments - Requests being service by the application  
+* Sub-segments - calls to AWS services and resources using AWS SDK and http APIs and calls to sql databases.  
+* Annotations - Indexed key values  
+* Metadata - Unindexed key values used for debugging
+
+XRay Coding:
+    
+    import xray_recorder, patch_all  
+    
+    xray_recorder.configure(service="(My segment name")  
+    patch_all()  
+    
+    segment=xray_recorder.begin_segment()  
+    segment.put_annotation('User','Superuser')  
+    # Annotate function using @xray_recorder.capture()  
+    xray_recorder.end_segment()
+
+XRay Console:
+
+Service Map: who talks to who, with average request times
+Traces: Details, Raw data (json)
+Query by annotation
+
+-----------------------------------------------------------------------------  
+## Exercise 10
+-----------------------------------------------------------------------------  
+
+Download new application zip.  application.py and util.py have xray imports and setup now.
+
+Download and start xray daemon.
+
+Go to the AWS X-Ray daemon documentation link below:  
+https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon.html
+
+On the documentation page, scroll down until you see a link to Linux (executable)-aws-xray-daemon-linux-2.x.zip (sig). Right-click the link and copy the link address.  
+
+https://s3.dualstack.us-east-2.amazonaws.com/aws-xray-assets.us-east-2/xray-daemon/aws-xray-daemon-linux-2.x.zip
+
+In your AWS Cloud9 instance terminal, type the command below to go to your home directory.
+
+Type wget and paste the AWS X-Ray daemon hyperlink address that you copied. The command should look like the example below.
+
+    cd ~
+
+    wget https://s3.dualstack.us-east-2.amazonaws.com/aws-xray-assets.us-east-2/xray-daemon/aws-xray-daemon-linux-2.x.zip
+
+    ./xray &
+
+Start application on Cloud9: exercise-xray/FlaskApp/application.py
+
+Open SSH tunnel to server from PC and connect to http://localhost:5000
+
+Whoops!  Need to undo the URL changes made in Exercise 9 for use of loadbalancer:
+
+Base URL should be "http://localhost:5000", which is still set in the Cloud9 ENV properties in BASE_URL.
+
+Cognito Console > Manage User Pools > select photos-pool > App Integration: App Client Settings:
+
+Update the Sign in and Sign out urls:
+
+Current - Using loadbalancer and DNS name:  
+Sign in: https://photos.edx.castor.nyc/callback  
+Sign out: https://photos.edx.castor.nyc/
+
+For local Cloud9 usage:  
+Sign in: http://localhost:5000/callback  
+Sign out: http://localhost:5000/
+
+Save changes.  Works from Cloud9 now.
+
+Login and upload a photo.  Check output from xray process (in terminal):
+
+    edXProjectUser3:~ $ 2018-08-06T17:16:48Z [Info] Successfully sent batch of 1 segments (0.069 seconds)
+    2018-08-06T17:16:50Z [Info] Successfully sent batch of 1 segments (0.027 seconds)
+    2018-08-06T17:16:51Z [Info] Successfully sent batch of 1 segments (0.022 seconds)
+    2018-08-06T17:16:55Z [Info] Successfully sent batch of 1 segments (0.017 seconds)
+    2018-08-06T17:28:56Z [Info] Successfully sent batch of 2 segments (0.021 seconds)
+    2018-08-06T17:28:58Z [Info] Successfully sent batch of 1 segments (0.022 seconds)
+    2018-08-06T17:29:05Z [Info] Successfully sent batch of 2 segments (0.022 seconds)
+    2018-08-06T17:29:11Z [Info] Successfully sent batch of 1 segments (0.039 seconds)
+    2018-08-06T17:29:50Z [Info] Successfully sent batch of 1 segments (0.024 seconds)
+
+In the AWS Console, click Services, then click X-Ray to open the AWS X-Ray dashboard.  Opens to Service Map.
+
+View traces.  Filter by time (custom or relative), and application and URL.  Can also search by annotation like this:
+
+    annotation.user_nickname = "brian"
+
+-----------------------------------------------------------------------------  
+## Exercise 10B - Add annotation
+-----------------------------------------------------------------------------  
+
+Added to homepage route home():
+
+    # Ex 10 - Add annotation with current user's nickname  
+    document = xray_recorder.current_segment()
+    
+    #document.put_annotation("user_nickname", flask_login.current_user.nickname); - Does not work.  current_user has no .nickname field.  Use session[] instead.  
+    document.put_annotation("user_nickname", session['nickname']);
+    
+    #xray_recorder.put_annotation("test", "test"); - Does not work.  xray_recorder instance is a AsyncAWSXRayRecorder, which has no put_annotation() method.
+
+Because the annotation is added in the home "/" URL, they do not appear in the /myphotos URL trace data.  Need to select the / URL.
+
+Search by annotation by deleting the URL filter, and adding the annotation filter:
+
+    service("MyApplication") and annotation.user_nickname = "brian"  
+    service("MyApplication") and annotation.user_nickname != ""  
+    service("MyApplication") and annotation.user_nickname contains "bri"  
+
+
+Cannot use single quotes.
+
+https://docs.aws.amazon.com/xray/latest/devguide/xray-console-filters.html?icmpid=docs_xray_console
+
+Service id and types:
+
+    service(id(type: "AWS::S3"))
+
+Can check the type on the trace details page.  Appears in small grey letters next to each matching segment and sub-segment name:
+
+* MyApplication  AWS::EC2::Instance <--- This is the type  
+* edx-photos-db.ccd69a3vcffc.us-west-2.rds.amazonaws.com  Database::SQL (Client Response)  
+* S3  AWS::S3 (Client Response)  
+* rekognition  AWS::rekognition (Client Response)  
+
+Done.
+
+-----------------------------------------------------------------------------  
+## Exercise 10C - exception
+-----------------------------------------------------------------------------  
+
+Created a new route /error with division by zero.  Tested in browser.
+
+Appears in XRay under /error URL:
+
+    service("MyApplication") {fault}
+
+Click on a trace list id, and then click the My Application segment detail line.  Will get a popup of the segment.  Check the Exceptions tab to see the stack trace.  (NOTE: Stack trade in xray is not the same as actual python trace).  Python trace gives more specific error:
+
+XRay stack trace:
+
+    ZeroDivisionError: division by zero
+        at handle_one_request (serving.py:328)
+        at run_wsgi (serving.py:270)
+        at execute (serving.py:260)
+        at debug_application (__init__.py:288)
+        at __call__ (app.py:1997)
+        at wsgi_app (app.py:1978)
+        at push (ctx.py:311)
+        at pop (ctx.py:353)
+        at do_teardown_request (app.py:1879)
+
+Python error:
+
+    File "/usr/local/lib/python3.6/site-packages/flask/app.py", line 1612, in full_dispatch_request  
+            rv = self.dispatch_request()  
+    File "/usr/local/lib/python3.6/site-packages/flask/app.py", line 1598, in dispatch_request  
+            return self.view_functions[rule.endpoint](**req.view_args)  
+    File "/usr/local/lib/python3.6/site-packages/flask_login/utils.py", line 261, in decorated_view  
+            return func(*args, **kwargs)  
+    File "/home/ec2-user/environment/exercise-xray/FlaskApp/application.py", line 304, in myerror  
+            return 100/0  
+    ZeroDivisionError: division by zero  
+
+Done.
+
+-----------------------------------------------------------------------------  
+## AWS Lambda
+-----------------------------------------------------------------------------  
+
+Serverless compute - Just create functions.  Don't need to set up a EC2 server.
+
+Services which can integrate Lambdas:
+
+* API Gateway - restful endpoint   
+* Dynamo DB streams - table changes  
+* Kinesis - streaming data  
+* S3 - bucket events  
+* SNS (Simple notification service) - topic messages  
+* Cognito - customizing workflows  
+
+Need to package functions into zip or jar file with code and dependencies.
+
+Logging in the code is sent to Amazon Cloudwatch logs.
+
+Can define the lambda function in the Lambda console, and then run it from the console, and check the output and logging.
+
+Can also run the function via CLI:
+
+    aws lambda invoke --function-name EdxDemo --payload file://payload.json out.json
+
+Lambda functions are billed based on execution time in 100ms increments.
+
+-----------------------------------------------------------------------------  
+## Exercise 11 - Lambda function to call Rekognition to get labels and save to db
+-----------------------------------------------------------------------------  
+
+https://courses.edx.org/courses/course-v1:AWS+OTP-AWSD1+1T2018/courseware/840f80af07e54f41bedfce70a7a0f4c5/5e11294677ed48f3bd8bcd9ba3a6e4a2/?child=first
+
+1) Create NAT in AWS CloudFormation stack 
+
+Download updated template file with NAT.  Go to CloudFormation console.  Select edx-vpc-stack.  Action > Update > Browse and select new template file.
+
+Keyname = key pair AWS_E3_KeyPair2
+
+Options > Next
+
+Review > Create
+
+Go to EC2 console > Instances.  Check new EC2 instance "edx-nat-instance".
+
+2) Create an AWS IAM role for the AWS Lambda function -  labels-lambda-role
+
+* AmazonRekognitionReadOnlyAccess  
+* AmazonS3ReadOnlyAccess   
+* AWSLambdaVPCAccessExecutionRole   
+
+3) Create a security group in edx-build-aws-vpc for the AWS Lambda function
+
+Got to EC2 console > Security groups > Create - labels-lambda-sg
+
+4) Modify the security group of the Amazon RDS database instance.  Allow inbound to Mysql from security groups labels-lambda-sg
+
+5) Create a placeholder AWS Lambda function:
+
+Lambda console > Create > From scratch
+
+* Name = labels-lambda  
+* Runtime = Python 3.6  
+* Role = Existing role = labels-lambda-role
+Next  
+* function =  print("Hello")
+* Network = edx-build-aws-vpc  
+* Subnets = 2 private subnets  
+* Security group = labels-lambda-sg  
+
+6) Create test for S3 event and run it.  View logs in Cloudwatch console > Logs
+
+7) Download new application code in Cloud9
+
+8) Test new lambda_function.py locally using fake S3 event.
+
+9) Package lambda function:
+
+Will replace the temporary lambda function "labels-lambda"
+
+    cd ~/environment
+    mkdir libraries
+    pip-3.6 install 'mysql_connector_python<8.1' -t libraries
+    cd libraries/
+    zip -r ~/environment/lambda.zip *
+    cd ~/environment/exercise-lambda/LambdaImageLabels/
+    zip ~/environment/lambda.zip *.py
+
+    cd ~/environment 
+    aws lambda update-function-code --function-name labels-lambda --zip-file fileb://lambda.zip
+
+10) Configure the AWS Lambda function with the Amazon RDS database environment variables.
+
+Lambda console > Functions > labels-lambda > Env vars:
+
+* DATABASE_HOST=edx-photos-db.ccd69a3vcffc.us-west-2.rds.amazonaws.com  
+* DATABASE_USER=web_user  
+* DATABASE_PASSWORD=ShowMeTheMoney
+* DATABASE_DB_NAME=Photos  
+
+Save
+
+11) Test by copying the fake S3 event from the code to the test event created earlier and test.
+
+12) Configure the photos Amazon S3 bucket to trigger the AWS Lambda function
+
+S3 Console > bbruceedxbucket > Properties tab > Advanced settings > Events > Add notification
+
+* Name: S3EventForLambdaOnCreate  
+* Events: ObjectCreate (all)  
+* Send to: Lambda function  
+* Lambda: labels-lambda  
+
+Your Amazon S3 bucket will now trigger the AWS Lambda function to execute as soon as a photo gets uploaded to the bucket.
+
+13) Test the application locally in Cloud9
+
+Run python config: exercise-lambda/FlaskApp/application.py
+
+Will start on http://0.0.0.0:8080/
+
+To run the app, click Preview > Preview Running Application and expand the window (goes to a new tab).
+
+New URL in browser:
+
+https://da26e64636a04159b67b4d4b9a30af4d.vfs.cloud9.us-west-2.amazonaws.com/
+
+ERROR: After login dialog, will get an error due to the callback URL being different.
+
+http://localhost:5000/callback?code=e8c1e844-2ee0-48fb-9d73-80087d8770d6&state=08f43588b815986e
+
+Can't change BASE_URL in env or I get redirect_error message in browser.
+Can't change Callback or Signout URLs in Cognito or I also get redirect_error in browser
+
+Response from Edx Trainers:
+
+https://courses.edx.org/courses/course-v1:AWS+OTP-AWSD1+1T2018/courseware/840f80af07e54f41bedfce70a7a0f4c5/7dc7debc24fa4aa19ad049edb99cca6d/2?activate_block_id=block-v1%3AAWS%2BOTP-AWSD1%2B1T2018%2Btype%40vertical%2Bblock%40bab4f83bce8f4dcdb6c35b6701bed4a8
+
+ SydRuss (Staff)
+
+    3 days ago
+
+    We rolled out some exercise updates today - this wiki will be relevant for you: https://courses.edx.org/courses/course-v1:AWS+OTP-AWSD1+1T2018/wiki/OTP-AWSD1/aug-2018-exercise-updates/
+
+    See the section that starts with If you have already completed exercise 9 and have remaining incomplete exercises. Let me know if this fixes your issues.
+
+    Russell 
+
+1) Check application.py and make sure the last section passes a port of 8080:
+
+    if __name__ == "__main__":
+        # http://flask.pocoo.org/docs/0.12/errorhandling/#working-with-debuggers
+        # https://docs.aws.amazon.com/cloud9/latest/user-guide/app-preview.html
+        use_c9_debugger = False
+        application.run(use_debugger=not use_c9_debugger, debug=True,
+                        use_reloader=not use_c9_debugger, host='0.0.0.0', port=8080)
+
+OK
+
+2) Preview running application and copy URL:
+
+https://da26e64636a04159b67b4d4b9a30af4d.vfs.cloud9.us-west-2.amazonaws.com/
+
+3) Update the BASE_URL env setting in cloud9 to that URL, WITHOUT the trailing "/"
+
+https://da26e64636a04159b67b4d4b9a30af4d.vfs.cloud9.us-west-2.amazonaws.com
+
+4) Go to Cognito console.
+
+Update Callback URL to new URL with "/callback":
+
+https://da26e64636a04159b67b4d4b9a30af4d.vfs.cloud9.us-west-2.amazonaws.com/callback
+
+Sign out URL:  Same as preview URL with trailing "/"
+
+https://da26e64636a04159b67b4d4b9a30af4d.vfs.cloud9.us-west-2.amazonaws.com/
+
+5) Restart the Python app in Cloud9 (URL will stay the same).  Test uploading.  The labels will not fill in right away.  Need to go to My Photos and refresh a couple times.  Then they should populate.
+
+Done!
+
+
+-----------------------------------------------------------------------------  
+## Week 6 - Aug 10 - Aug 
+-----------------------------------------------------------------------------  
+
+Amazon Simple Notification Service (SNS) and Simple Queue Service (SQS)
+
+SNS - Pub/sub, multiple subscribers can get notified.  (Lambda function and the SQS queue)
+
+SQS - Managed queue.  Subscribe to SNS events and store the events in the queue for external print facility.
 
