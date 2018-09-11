@@ -1704,12 +1704,38 @@ Done!
 
 
 -----------------------------------------------------------------------------  
-## Week 6 - Aug 10 - Aug 
+## Week 6 - Aug 10 - Sep 5
 -----------------------------------------------------------------------------  
 
 Amazon Simple Notification Service (SNS) and Simple Queue Service (SQS)
 
 SNS - Pub/sub, multiple subscribers can get notified.  (Lambda function and the SQS queue)
 
-SQS - Managed queue.  Subscribe to SNS events and store the events in the queue for external print facility.
+SQS - Managed queue.  Subscribe to SNS events and store the events in the queue for external print facility.  Durable queue.  Messages are saved.
+
+SNS - Publish by sending message to a topic.  Subscribe via email, Lambda, SQS, SNS, etc.  Async.
+
+Use SNS console to create and control access to topics.  Policies, who can publish, subscribe, protocols.
+
+Our Application:
+
+Create queue.  Publish file upload event.
+
+API:
+
+send-message
+
+receive-message
+
+    max-number-of-messages - how many msgs to receive (at a time?)
+
+    visibility-timeout - message will be invisible once a receivier takes it to all over receivers.  Receiver must delete the message once it is processed.  The msg will become visible to other receivers after this timeout.
+
+    wait-time-seconds - How long the receive call will wait for a msg.  Long polling.
+
+Messages will normally be processed in order, without dupes.  Best effort.  If you need correct sequence and/or no dupes, use FIFI queue or add a sequence number and process order yourself.
+
+-----------------------------------------------------------------------------  
+## Exercise 12
+-----------------------------------------------------------------------------  
 
