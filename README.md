@@ -2,6 +2,12 @@
 
 https://courses.edx.org/courses/course-v1:AWS+OTP-AWSD1+1T2018/course/
 
+
+Cloud9 keyboard shortcuts:
+F6 - Hide/show console.  Makes editor window bigger
+ctrl-`(~) - Switch focus between editor and console
+
+
 -----------------------------------------------------------------------------  
 # Week 1 - 6/28-7/1/2018
 -----------------------------------------------------------------------------  
@@ -1704,7 +1710,7 @@ Done!
 
 
 -----------------------------------------------------------------------------  
-## Week 6 - Aug 10 - Sep 5
+## Week 6 - Aug 10 - Oct 5 (Took a while off)
 -----------------------------------------------------------------------------  
 
 Amazon Simple Notification Service (SNS) and Simple Queue Service (SQS)
@@ -1738,4 +1744,123 @@ Messages will normally be processed in order, without dupes.  Best effort.  If y
 -----------------------------------------------------------------------------  
 ## Exercise 12
 -----------------------------------------------------------------------------  
+
+Start RDS "edx-photos-db"   
+Start EC2 "edx-nat-instance"
+
+1) Set up SNS to publish upload events:
+
+Go to SNS service console.  Get Started > Topic menu > Create new topic > "uploads-topic"
+
+* Topic ARN: arn:aws:sns:us-west-2:570589970431:uploads-topic
+
+Edit topic policy.  Advanced view.  Cut and paste policy text.  Replace ARM and Bucket name.
+
+Need bucket name: "bbruceedxbucket"
+
+Go to S3 console, select bbruceedxbucket > Properties > Events > delete the old lambda event.  Create new event for ObjectCreate(All) for SNS with topic uploads-topic.
+
+Create email subscription to SNS topic in SNS console.
+
+Cloud9 - Install updated application
+
+Run with Python3RunConfig (Run > Run Configurations > Python3RunConfig > enter command: exercise-sns-sqs/FlaskApp/application.py and press the Run button)
+
+Preview -> Preview Running Application > Pop out.   
+This is just to test the email notification. The label processing does not work yet.
+
+
+2) SQS processing to read upload events:
+
+SNS Console > Queue name = "uploads-queue" > Quick-create Queue
+
+Details:
+
+* Queue name: "uploads-queue"
+
+* Queue URL: https://sqs.us-west-2.amazonaws.com/570589970431/uploads-queue
+
+* Queue ARN: arn:aws:sqs:us-west-2:570589970431:uploads-queue
+
+Permissions > Edit Policy Document(Advanced) > Paste json.  Replace queue and topic ARN.  Save.
+
+SNS Console > Select uploads-topic > Subscribe > SQS > Enter SQS ARN.
+
+
+3) Update lamda function to subscribe to the SNS topic
+
+Lambda console > Functions > Add Trigger (left side) > SNS (Select) > Configure > SNS topic already selected "arn:aws:sns:us-west-2:570589970431:uploads-topic" > Save (at top).
+
+In Cloud9, need to update the lambda.zip code file with updated app scripts.
+
+I deleted the original zip so recreated it like this:
+
+    cd libraries/
+    zip -r ~/environment/lambda.zip *
+    cd ~/environment/exercise-lambda/LambdaImageLabels/
+    zip ~/environment/lambda.zip *.py
+
+    cd ~/environment 
+    aws lambda update-function-code --function-name labels-lambda --zip-file fileb://lambda.zip
+
+Run the app in Cloud9.  Upload a picture.  Should show "Processing asynchronously".  If you click My Pictures, you will see the correct labels, and you will get a SNS event email.
+
+4) Test SQS queue with long polling client.
+
+In console:
+
+    cd ~/environment
+
+    python3 exercise-sns-sqs/SqsLongPoll/sqs_long_poll.py  https://sqs.us-west-2.amazonaws.com/570589970431/uploads-queue
+
+When it starts, I see it is picking up previous upload events.  And it logs new uploads too.
+
+    Polling the photos queue.  Ctrl-C to exit.
+    We have a new upload: bucket: bbruceedxbucket key: photos/5ae8aa60c6214512.png, size: 156050 bytes
+
+
+Question - How does this work with the lambda function?  Do they both see the same events?  Does the lamdba function not delete the events in the queue?
+
+Answer: The lambda function does not depend on the SQS queue.  They both have their own subscriptions to the SNS event.
+
+You can view the SQS queue and view messages in the SQS console.  The messages stay in the queue, even after the lambda function has processed them.  
+
+If you run the long poll script, it will pick up the already processed messages, and delete them.
+
+(I think the idea is that the long poll can call the lambda function if desired.)
+
+
+-----------------------------------------------------------------------------  
+## Optional Challenge
+-----------------------------------------------------------------------------  
+
+Visibility timeout - Once a message is returned to one requestor, the message is not visible to other requestors for a period of time.
+
+Default vis timeout for my SQS queue: 30 seconds (From the SQS console)
+
+Unless the requestor with the message deletes it explicitly, it will be left in the queue.
+
+The longest a message can remain in the queue is based on the Message Retention Period, which for my queue is 4 days.
+
+
+Is there an automated way in Amazon SQS to move messages that can't be processed/consumed successfully? (Hint: Yes, there is. ☺)
+
+You can use a Dead letter queue by setting up a Redrive policy and a DL queue.  If a message exceeds the MaxReceiveCount, then it is moved to the DL queue automatically.  NOTE: Max retention period still applies to messages in the DL queue, based on the original send time.
+
+
+
+SQS message states: 
+* Sent
+* Stored (sent but not received by any consumer yet)
+* Received
+* In Flight (received but not yet deleted) - Limit of 120,000
+* Deleted
+
+
+-----------------------------------------------------------------------------
+Completed the "EdX AWS: OTP-AWSD1 AWS Developer: Building on AWS" course.
+
+Fri 10/5
+
+-----------------------------------------------------------------------------
 
