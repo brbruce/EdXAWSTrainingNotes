@@ -1,11 +1,17 @@
 # EdxAWSTrainingNotes
 
+AWS Developer: Building on AWS
+
 https://courses.edx.org/courses/course-v1:AWS+OTP-AWSD1+1T2018/course/
 
 
 Cloud9 keyboard shortcuts:
 F6 - Hide/show console.  Makes editor window bigger
 ctrl-`(~) - Switch focus between editor and console
+
+
+NOTE: All Cloud9 code used in the course has been committed to Github in https://github.com/brbruce/AWS_EdXWeek5Cloud9
+
 
 
 -----------------------------------------------------------------------------  
