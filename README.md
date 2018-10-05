@@ -1,6 +1,6 @@
 # EdxAWSTrainingNotes
 
-AWS Developer: Building on AWS
+AWS Developer: Building on AWS (Course 1 - AWS: OTP-AWSD1)
 
 https://courses.edx.org/courses/course-v1:AWS+OTP-AWSD1+1T2018/course/
 
