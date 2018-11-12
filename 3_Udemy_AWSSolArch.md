@@ -6,12 +6,12 @@ https://www.udemy.com/aws-certified-solutions-architect-associate/learn/v4/conte
 Section 1 - 10/8/2018
 =====================
 
-Intro to AWS certs and exams:
+### Intro to AWS certs and exams:
 
 (Easy to hard)
 1. Cert Cloud Practitioner
 2. Dev Assoc
-3. Sol Arch Assoc
+3. Sol Arch Assoc <==========
 4. Sysops Admin assoc
 5. ... Specialty
 6. Devops pro
@@ -56,12 +56,29 @@ AWS Best Cloud Practices:
 https://d0.awsstatic.com/whitepapers/AWS_Cloud_Best_Practices.pdf
 
 
-New Exam Details:
+### New Exam Details:
 
 Pass need 70%
 $75
 150 mins
 80 questions
 Valid for next 2 years
+
+Section 2 - 11/2/2018-
+=====================
+
+10000 ft overview Pt 1
+----------------------
+
+### Global Infra:
+
+* **Regions** - Geographical area - 16
+
+* **Availablity zones** - data center - 44
+
+* **Edge location** - endpoints - cache contents (CloudFront - CDN network) - 96
+
+
+### Services:
 
 
