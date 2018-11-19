@@ -7,8 +7,7 @@ https://courses.edx.org/courses/course-v1:AWS+OTP-AWSD1+1T2018/course/
 
 Cloud9 keyboard shortcuts:
 F6 - Hide/show console.  Makes editor window bigger
-ctrl-`(~) - Switch focus between editor and console
-
+ctrl-\` - Switch focus between editor and console
 
 NOTE: All Cloud9 code used in the course has been committed to Github in https://github.com/brbruce/AWS_EdXWeek5Cloud9
 
@@ -163,8 +162,16 @@ NOTE: Always grant "least privileges"
 -----------------------------------------------------------------------------  
 
 Create user "edXProjectUser3" and attach policy "edXProjectPolicy".  
-Download credentials.csv file. (Saved in C:\Users\Brian\Documents\\_Tech Info & Serial Numbers\PublicPrivateKeys\AWS Training Keys)  
+Download credentials.csv file. (Saved in C:\Users\Brian\Documents\\\_Tech Info & Serial Numbers\PublicPrivateKeys\AWS Training Keys)  
 Send email.  Click Dashboard.  Sign out (as AWS root user) and sign in as edXProjectUser.  Copy password from credentials.  Logged in!  
+
+
+
+Download credentials.csv file. (Saved in C:\Users\Brian\Documents\\\_Tech Info & Serial Numbers\PublicPrivateKeys\AWS Training Keys)  
+
+
+
+
 
 __IMPORTANT NOTE:__ Do not save access key info (csv file or the public/private keys) in the github folder.  Amazon checks github for any checkins with the access keys, and will suspend the IAM user account until you delete the access keys, and it may take a while to unsuspend it.  Save in an offline folder (\_TechInfo/PublicPrivateKeys)
 
@@ -189,7 +196,7 @@ Select existing or new key pair:  Choose existing key pair: AWS_E3_KeyPair (Crea
 
 IPv4 Public IP = 52.10.142.199
 
-SSH to "ec2-user@52.10.142.199" with SSH auth keys from C:\Users\Brian\Documents\\_Tech Info & Serial Numbers\PublicPrivateKeys\AWS Training Keys\AWS_E3_KeyPair.ppk
+SSH to "ec2-user@52.10.142.199" with SSH auth keys from C:\Users\Brian\Documents\\\_Tech Info & Serial Numbers\PublicPrivateKeys\AWS Training Keys\AWS_E3_KeyPair.ppk
 
 __NOTE: The SSH user to use is still the "ec2-user", and not the "edXProjectUser3" you created the instance with.__
 
@@ -556,7 +563,8 @@ LB types:
 6. Update userdata.txt with new bucket name.
 7. Zip up deploy and flaskApp dirs.  Need this to deploy to 2 new EC2 instances.
 8. Copy zip to new S3 bucket:
-    aws s3 cp ~/deploy-app.zip s3://ex8bucketbrbruce/
+
+    `aws s3 cp ~/deploy-app.zip s3://ex8bucketbrbruce/`
 
 9. IAM Console - Roles - create role - type = EC2  
 10. Use case = EC2 - Allows EC2 instances to call AWS services on your behalf.
@@ -879,7 +887,7 @@ https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/eb-cli3-install.html?icmp
 
 To update the install, just run the same command again.
 
-$PATH already has ~/.local/bin in it for the Cloud9 server.
+$PATH already has `~/.local/bin` in it for the Cloud9 server.
 
 Some commands:
 
@@ -1228,12 +1236,12 @@ Ownership validation: via DNS change or email.  Use DNS.
 
 Amazon will instruct you to add a new CNAME record:  
 * CNAME: _c33bed5a31ce327a1bdade02ffb18ce2.photos.edx.castor.nyc. (Note the trailing ".", which indicates absolute FQDN)  
-* Value: _d80585a3a31684ff7f89fe639a000d41.acm-validations.aws.  
+* Value: \_d80585a3a31684ff7f89fe639a000d41.acm-validations.aws.  
 
 Go to Network Solutions and add a CNAME record:
 * Alias: _c33bed5a31ce327a1bdade02ffb18ce2.photos.edx (NOTE: Do NOT include ".castor.nyc.".  It will be added automatically)  
 * Refers to host name - Leave unchecked.
-* Other host: Click this radio button and enter "_d80585a3a31684ff7f89fe639a000d41.acm-validations.aws." (Include the trailing ".")
+* Other host: Click this radio button and enter "\_d80585a3a31684ff7f89fe639a000d41.acm-validations.aws." (Include the trailing ".")
 
 Save and save.  Wait a while, and the Amazon cert request will get issued.
 
