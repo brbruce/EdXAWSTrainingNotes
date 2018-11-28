@@ -372,7 +372,7 @@ Also set up password rotation.
 
 
 
-Section 4 - AWS Object Storage and CDN - S3, Glacier and CloudFront - 11/13/2018 - 
+Section 4 - AWS Object Storage and CDN - S3, Glacier and CloudFront - 11/13/2018 - 11/28/2018
 ===============================
 
 16 - S3 101
@@ -421,11 +421,13 @@ ACLs for file level and Bucket policies
 
 #### S3 Tiers/classes
 
-* S3 Standard - 2-9s avail, 11-9s durability.  Multiple devices and facilities (AZs).  Designed to withstand loss of 2 facilities.
+* S3 Standard - 99.99% avail, 99.999999999% (11-9s) durability.  Multiple devices and facilities (AZs).  Designed to withstand loss of 2 facilities.
 
 * S3 IA - Cheaper.  Infrequent access, but still rapid access.  Lower cost than standard but there is a retrieval fee.
 
 * S3 One Zone IA - Even cheaper.  If you don't need multiple AZ resilience.
+
+* RRS - OLD!!!  Reduced Redundancy Storage.  Like One zone but more expensive, and lower durability (99.99%)
 
 * Glacier - Cheapest, archival only.  Expedited,  Standard, Bulk - different fees for retrieval times.  Standard is 3.5 hour retrieval time.
 
@@ -677,6 +679,335 @@ Alternate domain names - The default URL is very messy, random letters and numbe
 SSL cert - If you use an alternate domain name, you would need to use a custom ssl cert to match it.
 
 Create.  Wait.  Status is "In Progress".  Takes a while.
+
+(Resume 11/28/2019)
+
+View S3 image in browser with origin URL = https://s3.amazonaws.com/brbruce/barknado_pooch_cafe_small.jpg
+
+Take Cloudfront distribution URL "drslfe51oa0fs.cloudfront.net" and update the URL for the image to https://drslfe51oa0fs.cloudfront.net/barknado_pooch_cafe_small.jpg.
+
+Worked!!!!  Cached version.
+
+Take a look at Distribution settings.  
+
+Origins - Can create multiple origin buckets to use with one distribution.
+
+Behavior - Can create path patterns to get PDFs from one bucket, and JPGs from a different bucket.
+
+Custom error pages
+
+Geo Restrictions - Whitelist or blacklist (one or the other) - Select multiple countries
+
+Invalidations - Remove object from cache before it expires.  Expensive.  Use versioning to reference newer objects instead.
+
+23 - S3 Security and Encryption - 11/28/2018
+--------------------------------------------
+
+All new buckets are private.
+
+Access control via :
+* Bucket Policies
+* Access Control Lists
+
+Can create access logs which are stored in another bucket.
+
+Encryption
+* In transit - SSL/TLS
+* At rest - 
+  * Server side encryption
+    * S3 managed keys - SSE-S3
+    * AWS Key Management Service - SSE-KMS
+      * Audit trail of key use
+    * Customer keys - SSE-C
+  * Client side encrpt
+
+24 - Storage Gateway
+---------------------
+
+Software on local site, with cloud based storage on AWS.
+
+Seamless, secure integration between IT env and AWS storage.  Scalable, cost-effective.
+
+SG runs on a VM installed on a host in a datacenter.  VMWare ESXi or MS Hyper-V.
+
+Connects to S3 or Glacier.
+
+4 types of SG:
+* File Gateway (NFS) Flat files on S3
+* Volumes Gateway (iSCSI) Block based - OS, DB
+  * Stored Volumes - Entire copy on site and backed up in AWS
+  * Cached volumes - Recently accessed data on premise and backed up
+* Tape Gateway (VTL) - Virtual tapes in S3
+
+#### File Gateway
+
+NFS mount point, S3 bucket.  File permissions ownership, timestamps stored in S3 metadata.
+
+No local storage.
+
+Local site connected to AWS via internet, or Direct Connect (private connection), or Amazon VPC.
+
+AWS can be S3, IA or Glacier.  Use Lifecycle policies.
+
+#### Volume Gateway
+
+Virtual harddisks.
+
+Appears as a disk using iSCSI protocol.
+
+**Stored Volumes**
+
+ALL data is stored on local storage hardware, AND async backed up to cloud as EBS (elastic block store) snapshots in S3.
+
+Snapshots are incremental only changes and are compressed.
+
+1 GB - 16 TB in size.
+
+**Cached Volumes**
+
+Uses cloud as primary storage, with local cache of frequently accessed data locally.
+
+Up to 32 TB size.  Less local storage requirements.
+
+Cloud storage - Diagran says S3 but might be EBS volumes first, which then get backed up to EBS snapshots in S3.
+
+#### Tape Gateway
+
+Supported by popular backup tools (NetBackup, BackupExec, Veeam etc)
+
+iSCSI to SG VM which creates virtual tapes backed up by S3.  Lifecycle to archive tapes to glacier.
+
+25- Snowball
+------------
+
+Import Export (Old) - Send your own disk to Amazon to transfer data.  Different types of disks sent in.
+
+Snowball (New) - Standardized disk from Amazon
+
+Snowball types:
+
+* Snowball - Petabyte-scale storage.  Standard Device to send data.  Very large disks, secure physical container, 256 bit encryption, TPM module.  Data is securely erased after transfer.
+
+* Snowball Edge - 100 TB.  Includes compute capability lambda functions.  Mini datacenter. Can collect data on an airplane, etc.
+
+* Snowmobile - 18 wheeler with container containing Exabyte-scale data.  100 PB per container.
+
+26 - Snowball lab
+-----------------
+
+Create job to get a snowball.  Specify S3 bucket name.
+
+Once you have it, download and install a client to connect to snowball.
+
+Get credentials, get unlock code, download manifest file.
+
+Snowball commandline:
+```
+./snowball start -i 192.168.1.116 -m <Manifest file> -u <unlock code>
+
+./snowball cp <file> s3://acloudguru-snowball
+```
+
+Amazon will pick up the snowball and load it up.
+
+27 - S3 Transfer Acceleration
+-----------------------------
+
+Uses Cloudfront Edge Network to speed up S3 uploads.
+
+Uses a special URL for uploads to a bucket.  Goes to an Edge server local.
+
+Create a new S3 bucket.  Go to Properties > Transfer Acceleration. Enable and Save.
+
+Get a new endpoint URL: brbruce-transferaccel.s3-accelerate.amazonaws.com
+
+Can click link to compare upload speeds for direct vs TA. (9% faster from us-west2)  Shows speeds from all regions.
+
+28 - Create a Static website using S3
+--------------------------------------
+
+Download zip file.  New bucket in S3.
+
+**Public Access Settings**
+
+Change Permissions setting to make the bucket public (Uncheck the 4 boxes) and save.
+
+**Static Website Hosting**
+
+Go to Properties > Static Website hosting and select Use this Bucket to host a website.
+
+Enter names for index and error html files.  Save.
+
+Gives you the S3 static website endpoint.  Format is:
+
+```http://<bucketname>.s3-website-<region>.amazonaws.com```
+
+http://brbruce-transferaccel.s3-website-us-west-2.amazonaws.com
+
+**Bucket Policies**
+
+All files are private by default.  Change that by editing the Bucket Policy.
+
+Permissions > Bucket Policy (JSON editor).  Paste the following and edit the bucket name
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": [
+        "s3:GetObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::BUCKET_NAME/*"
+      ]
+    }
+  ]
+}
+```
+
+Upload the two files, and try to access.  Test a bad filename to see the error page.
+
+#### Exam Tips:
+
+Can host static website using S3.
+
+Can use bucket policies to make website public.
+
+Cannot use S3 for dynamic website which requires database.
+
+S3 scales automatically for large number of requests.
+
+29 - S3 Exam Tips
+-----------------
+
+S3 is object based (files).  No OS or DB (EBS).
+
+Size from 0 to 5 TB
+
+Unlimited storage
+
+Stored in Buckets
+
+Bucket names must be unique globally.
+
+Bucket URL format: 
+
+`https://s3-<region>.amazonaws.com/<bucketname>`
+
+**Consistency Model:**
+
+Read after write for PUTS of new objects - Can immediately read after creating.
+
+Eventual consistency for updates (overwrite PUTS) and deletes - Takes time to update.  Read might get old version of objects if immediately after.
+
+**S3 Tiers/Classes:**
+
+S3 Standard - 99.99% avail, 99.999999999% (11 9s) durability.  Redundant storage on devices in multiple facilities.  Can sustain loss of 2 facilities at once.
+
+S3-IA - Infreq access.  Cheaper, but fee for retrieval.
+
+S3 1 zone IA - Cheaper.  No multiple AZ resilience.
+
+(Old) RRS - Expensive!  Same as 1 zone IA but durability is only 99.99%.
+
+Glacier - Archival.  Expedited, Standard, Bulk.  Standard takes 3-5 hours to retrieve.
+
+**Fundamentals**
+
+Key/value store - Name and data (bytes)
+
+Version ID
+
+Metadata
+
+Access Control lists
+
+S3 stores all versions, even deleted versions.
+
+Great backup tool.
+
+Once enabled, cannot be disabled, only suspended.
+
+Supports lifecycle rules
+
+Versioning has MFA delete.
+
+Cross Region Replication
+
+Lifecycle - With or without versioning
+
+Applies to current and previous versions
+
+Transition to Standard-IA: Must be min 128 KB and 30 days after creation
+
+Archive to Glacier: min 30 days after IA (60 days after create)
+
+Permanently delete
+
+Bucket permissions: Bucket Policies - Applies to entire bucket or ACL - Applies to individual files.
+
+Write to S3 - 200 code for success
+
+Upload faster using multipart uploads
+
+Read the S3 FAQ.
+
+Part 3 Quiz questions
+---------------------
+
+Q2: What is AWS Storage Gateway? 
+
+A: It's an on-premise virtual appliance that can be used to cache S3 locally at a customer's site.
+
+
+Q3: One of your users is trying to upload a 7.5GB file to S3 however they keep getting the following error message - "Your proposed upload exceeds the maximum allowed object size.". What is a possible solution for this?
+
+A: Design your application to use the multi-part upload API for all objects
+
+> Q:     How much data can I store in Amazon S3?
+>
+> The total volume of data and number of objects you can store are unlimited. Individual Amazon S3 objects can range in size from a minimum of 0 bytes to a maximum of 5 terabytes. The largest object that can be uploaded in a single PUT is 5 gigabytes. For objects larger than 100 megabytes, customers should consider using the Multipart Upload capability.
+
+Q4: What does RRS stand for when talking about S3?
+
+A: Reduced Redundancy Storage (Old name for S3-1 zone IA)
+
+Q10: What is the durability on RRS? 
+
+A: 99.99%
+
+Q13: Min file size on S3?
+
+A: 1 Byte
+
+Section 5 - EC2 - 11/28/2018 - 
+===============================
+
+30 - EC2 101
+------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
